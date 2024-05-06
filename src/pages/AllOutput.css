@@ -1,0 +1,52 @@
+.allOutput {
+  padding: 20px;
+}
+
+.header {
+  margin: 0;
+  padding: 20px;
+  background-color: rgb(56, 176, 0);
+  color: white;
+}
+
+.outputSection {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.entry {
+  width: 45%;
+  margin: 10px;
+  padding: 15px;
+  background-color: #f0f0f0;
+  border: 2px solid #ccc;
+  border-radius: 5px;
+}
+
+.entryHeader {
+  margin-bottom: 10px;
+}
+
+.entryContent {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.portBadge {
+  display: inline-block;
+  margin-right: 8px;
+  margin-bottom: 8px;
+  padding: 6px 12px;
+  border-radius: 20px;
+  background-color: #2a9426;
+  color: white;
+  font-size: 14px;
+  font-weight: bold; /* Set font weight to bold for all port numbers */
+  text-decoration: none; /* Remove underline */
+  cursor: pointer; /* Show pointer cursor on hover */
+}
+
+.portBadge:hover {
+  background-color: #113d11; /* Change background color on hover */
+}
+

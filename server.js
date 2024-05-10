@@ -12,38 +12,61 @@ app.use(express.json());
 const baseFolder = path.resolve(process.env.HOME + "/Downloads");
 const resultsFolder = path.join(baseFolder, "/results");
 const nestedResultsFolder = path.join(resultsFolder, "/results");
+console.log(process.env.PATH);
 
-app.post("/api/startScan", (req, res) => {
-  const { ipAddress } = req.body;
+app.get("/api/startScan", (req, res) => {
+  const ipAddress = "10.3.20.10";
 
-  if (!ipAddress) {
-    return res.status(400).json({ error: "IP address is required" });
-  }
-
-  const command = "semiautorecon";
+  const command =
+    "/home/kali/.local/share/pipx/venvs/semiautorecon/bin/semiautorecon";
   const args = [ipAddress];
   const options = { cwd: resultsFolder };
 
-  const childProcess = spawn(command, args, options);
-  console.log(options);
-  let stdoutData = "";
+  try {
+    console.log("Command:", command);
+    console.log("Arguments:", args);
 
-  childProcess.stdout.on("data", (data) => {
-    stdoutData += data.toString();
-    console.log("Semiautorecon stdout:", data.toString());
-  });
+    const childProcess = spawn("bash", ["-c", `${command} ${args.join(" ")}`]);
 
-  childProcess.on("close", (code) => {
-    console.log("Semiautorecon output:", stdoutData);
-    const commands = parseSemiautoreconOutput(stdoutData);
-    console.log("Parsed Commands:", commands);
-    res.status(200).json({ commands });
-  });
+    let stdoutData = "";
 
-  childProcess.on("error", (err) => {
-    console.error(`Error executing Semiautorecon: ${err}`);
-    res.status(500).json({ error: "Semiautorecon failed" });
-  });
+    // Listen for data from stdout
+    childProcess.stdout.on("data", (data) => {
+      stdoutData += data.toString();
+      console.log("Semiautorecon stdout:", data.toString());
+      console.error("Semiautorecon stderr:", data.toString());
+    });
+
+    childProcess.stderr.on("data", (data) => {
+      console.error("Semiautorecon stderr:", data.toString());
+    });
+
+    // Handle error event
+    childProcess.on("error", (err) => {
+      console.error("Error executing semiautorecon:", err);
+      return res.status(500).json({ error: "Failed to execute semiautorecon" });
+    });
+
+    // Handle close event
+    childProcess.on("close", (code) => {
+      console.log(`Semiautorecon exited with code ${code}`);
+      console.log("Semiautorecon output:", stdoutData);
+
+      const commands = parseSemiautoreconOutput(stdoutData);
+      console.log("Parsed Commands:", commands);
+
+      if (code !== 0) {
+        return res
+          .status(500)
+          .json({ error: "Semiautorecon process exited with non-zero status" });
+      }
+
+      return res.send({ commands });
+    });
+  } catch (e) {
+    console.error("Error occurred:", e);
+    return res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 app.post("/api/executeCommand", (req, res) => {
@@ -69,6 +92,7 @@ app.post("/api/executeCommand", (req, res) => {
   childProcess.on("close", (code) => {
     if (code !== 0) {
       console.error(`Error executing command: ${stderrData}`);
+
       return res.status(500).json({ error: "Command execution failed" });
     }
 

@@ -14,8 +14,10 @@ const resultsFolder = path.join(baseFolder, "/results");
 const nestedResultsFolder = path.join(resultsFolder, "/results");
 console.log(process.env.PATH);
 
+const pty = require("node-pty");
+
 app.get("/api/startScan", (req, res) => {
-  const ipAddress = "10.3.20.10";
+  const ipAddress = "10.3.20.50";
 
   const command =
     "/home/kali/.local/share/pipx/venvs/semiautorecon/bin/semiautorecon";
@@ -26,29 +28,22 @@ app.get("/api/startScan", (req, res) => {
     console.log("Command:", command);
     console.log("Arguments:", args);
 
-    const childProcess = spawn("bash", ["-c", `${command} ${args.join(" ")}`]);
+    const shell = pty.spawn(command, args, {
+      name: "xterm-color",
+      cols: 80,
+      rows: 30,
+      cwd: resultsFolder,
+      env: process.env,
+    });
 
     let stdoutData = "";
 
-    // Listen for data from stdout
-    childProcess.stdout.on("data", (data) => {
-      stdoutData += data.toString();
+    shell.on("data", (data) => {
+      stdoutData += data;
       console.log("Semiautorecon stdout:", data.toString());
-      console.error("Semiautorecon stderr:", data.toString());
     });
 
-    childProcess.stderr.on("data", (data) => {
-      console.error("Semiautorecon stderr:", data.toString());
-    });
-
-    // Handle error event
-    childProcess.on("error", (err) => {
-      console.error("Error executing semiautorecon:", err);
-      return res.status(500).json({ error: "Failed to execute semiautorecon" });
-    });
-
-    // Handle close event
-    childProcess.on("close", (code) => {
+    shell.on("exit", (code) => {
       console.log(`Semiautorecon exited with code ${code}`);
       console.log("Semiautorecon output:", stdoutData);
 

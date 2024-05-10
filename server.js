@@ -1,20 +1,98 @@
 const express = require("express");
-const fs = require("fs");
+const cors = require("cors");
+const { spawn } = require("child_process");
 const path = require("path");
-const cors = require("cors"); // Import the cors middleware
+const fs = require("fs");
 
 const app = express();
 
-app.use(cors()); // Enable CORS for all routes
+app.use(cors());
+app.use(express.json());
 
-// Resolve the '~/results' path to an absolute path
-const resultsFolder = path.resolve(
-  process.env.HOME + "/Downloads/results/results"
-);
+const baseFolder = path.resolve(process.env.HOME + "/Downloads");
+const resultsFolder = path.join(baseFolder, "/results");
+const nestedResultsFolder = path.join(resultsFolder, "/results");
 
-// Define a route to serve the data from all files and directories under the "results" folder
+app.post("/api/startScan", (req, res) => {
+  const { ipAddress } = req.body;
+
+  if (!ipAddress) {
+    return res.status(400).json({ error: "IP address is required" });
+  }
+
+  const command = "semiautorecon";
+  const args = [ipAddress];
+  const options = { cwd: resultsFolder };
+
+  const childProcess = spawn(command, args, options);
+  console.log(options);
+  let stdoutData = "";
+
+  childProcess.stdout.on("data", (data) => {
+    stdoutData += data.toString();
+    console.log("Semiautorecon stdout:", data.toString());
+  });
+
+  childProcess.on("close", (code) => {
+    console.log("Semiautorecon output:", stdoutData);
+    const commands = parseSemiautoreconOutput(stdoutData);
+    console.log("Parsed Commands:", commands);
+    res.status(200).json({ commands });
+  });
+
+  childProcess.on("error", (err) => {
+    console.error(`Error executing Semiautorecon: ${err}`);
+    res.status(500).json({ error: "Semiautorecon failed" });
+  });
+});
+
+app.post("/api/executeCommand", (req, res) => {
+  const { command } = req.body;
+
+  if (!command) {
+    return res.status(400).json({ error: "Command is required" });
+  }
+
+  const childProcess = spawn(command, { shell: true });
+
+  let stdoutData = "";
+  let stderrData = "";
+
+  childProcess.stdout.on("data", (data) => {
+    stdoutData += data.toString();
+  });
+
+  childProcess.stderr.on("data", (data) => {
+    stderrData += data.toString();
+  });
+
+  childProcess.on("close", (code) => {
+    if (code !== 0) {
+      console.error(`Error executing command: ${stderrData}`);
+      return res.status(500).json({ error: "Command execution failed" });
+    }
+
+    console.log(`Command output: ${stdoutData}`);
+    res
+      .status(200)
+      .json({ message: "Command executed successfully", output: stdoutData });
+  });
+});
+
+function parseSemiautoreconOutput(output) {
+  const regex =
+    /\[!\]\sSemiAutoRecon wants to execute the following command:\s(.+)\sType "EXECUTE" to execute this command, "SKIP" to skip it/g;
+  const commands = [];
+  let match;
+  console.log("this is the output ", output);
+  while ((match = regex.exec(output)) !== null) {
+    commands.push(match[1]);
+  }
+
+  return commands;
+}
+
 app.get("/api/allData", (req, res) => {
-  // Function to read files and directories recursively
   function readFilesAndDirectoriesRecursively(directory) {
     const items = fs.readdirSync(directory);
     const data = [];
@@ -24,11 +102,9 @@ app.get("/api/allData", (req, res) => {
       const stats = fs.statSync(itemPath);
 
       if (stats.isDirectory()) {
-        // Recursively read subdirectories
         const subdirectoryData = readFilesAndDirectoriesRecursively(itemPath);
         data.push({ [item]: subdirectoryData });
       } else {
-        // Read file contents
         const fileContent = fs.readFileSync(itemPath, "utf8");
         data.push({ filename: item, content: fileContent });
       }
@@ -37,14 +113,10 @@ app.get("/api/allData", (req, res) => {
     return data;
   }
 
-  // Read data from all files and directories under the "results" folder
-  const allData = readFilesAndDirectoriesRecursively(resultsFolder);
-
-  // Send the data as a JSON response
+  const allData = readFilesAndDirectoriesRecursively(nestedResultsFolder);
   res.json(allData);
 });
 
-// Start the server on port 3002
 const PORT = process.env.PORT || 3002;
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);

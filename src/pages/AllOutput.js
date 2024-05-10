@@ -23,49 +23,48 @@ const AllOutput = () => {
     scans.forEach((scan) => {
       const ip = Object.keys(scan)[0];
       if (ip === ipAddress) {
-        const portData = scan[ip][3].scans;
-        //console.log(portData);
-        portData.forEach((port) => {
-          const portNumber = Object.keys(port)[0];
-          const portInfo = port[portNumber];
+        const portData = scan[ip][3]?.scans; // Use optional chaining (?.) to safely access scans array
+        if (portData && Array.isArray(portData)) {
+          portData.forEach((port) => {
+            const portNumber = Object.keys(port)[0];
+            const portInfo = port[portNumber];
 
-          let filename = null; // Define filename here
-          let content = null; // Define content here
+            let filename = null;
+            let content = null;
 
-          if (
-            portInfo &&
-            typeof portInfo === "object" &&
-            portInfo[0].filename
-          ) {
-            if (portInfo[0].filename.endsWith(".txt")) {
-              console.log(portInfo);
+            if (
+              portInfo &&
+              typeof portInfo === "object" &&
+              portInfo[0]?.filename && // Use optional chaining (?.) to safely access filename
+              portInfo[0].filename.endsWith(".txt")
+            ) {
               filename = portInfo[0].filename;
               content = portInfo[0].content;
             }
-          }
 
-          if (portNumber.startsWith("tcp")) {
-            if (filename && content) {
-              openPorts.tcp.push({
-                port: portNumber,
-                filename: filename,
-                content: content,
-              });
-            } else {
-              openPorts.tcp.push({ port: portNumber });
+            if (portNumber.startsWith("tcp")) {
+              if (filename && content) {
+                openPorts.tcp.push({
+                  port: portNumber,
+                  filename: filename,
+                  content: content,
+                });
+              } else {
+                openPorts.tcp.push({ port: portNumber });
+              }
+            } else if (portNumber.startsWith("udp")) {
+              if (filename && content) {
+                openPorts.udp.push({
+                  port: portNumber,
+                  filename: filename,
+                  content: content,
+                });
+              } else {
+                openPorts.udp.push({ port: portNumber });
+              }
             }
-          } else if (portNumber.startsWith("udp")) {
-            if (filename && content) {
-              openPorts.udp.push({
-                port: portNumber,
-                filename: filename,
-                content: content,
-              });
-            } else {
-              openPorts.udp.push({ port: portNumber });
-            }
-          }
-        });
+          });
+        }
       }
     });
 

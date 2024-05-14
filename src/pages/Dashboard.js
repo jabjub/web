@@ -1,11 +1,12 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import axios from "axios";
 import "./Dashboard.css";
-
+import io from "socket.io-client";
 const Dashboard = () => {
   const [ipAddress, setIpAddress] = useState("");
   const [isValidIp, setIsValidIp] = useState(false);
-
+  const [action, setAction] = useState("");
+  const [socket, setSocket] = useState(null);
   const handleInputChange = (e) => {
     const value = e.target.value;
     setIpAddress(value);
@@ -74,7 +75,21 @@ const Dashboard = () => {
       alert("Failed to execute command. Please try again.");
     }
   };
-
+  useEffect(() => {
+    const socket = io("http://localhost:3002");
+    setSocket(socket);
+    socket.on("connect", () => {
+      console.log("socket connected");
+    });
+    socket.on("confirmationNeeded", (data) => {
+      console.log("input needed", data);
+      setAction(data);
+      //const userInput = window.confirm("Are you sure" ? "y" : "n");
+    });
+  }, []);
+  const handleAction = (a) => {
+    socket.emit("userInput", a);
+  };
   return (
     <div className="dashboard-container">
       <div className="input-container">
@@ -100,6 +115,13 @@ const Dashboard = () => {
           </button>
         </form>
       </div>
+      {action && (
+        <div>
+          {action}
+          <button onClick={() => handleAction("y")}>accept</button>
+          <button onClick={() => handleAction("n")}>refuse</button>
+        </div>
+      )}
     </div>
   );
 };

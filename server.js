@@ -3,12 +3,22 @@ const cors = require("cors");
 const { spawn } = require("child_process");
 const path = require("path");
 const fs = require("fs");
-
 const app = express();
 
+const http = require("http").createServer(app);
+const io = require("socket.io")(http, {
+  cors: {
+    origin: "http://localhost:3000",
+    methods: ["GET", "POST", "*", "**"],
+  },
+});
+let clientSocket;
 app.use(cors());
 app.use(express.json());
-
+io.on("connection", (socket) => {
+  console.log("socket id", socket.id);
+  clientSocket = socket;
+});
 const baseFolder = path.resolve(process.env.HOME + "/Downloads");
 const resultsFolder = path.join(baseFolder, "/results");
 const nestedResultsFolder = path.join(resultsFolder, "/results");
@@ -16,9 +26,11 @@ console.log(process.env.PATH);
 
 const pty = require("node-pty");
 
-app.get("/api/startScan", (req, res) => {
-  const ipAddress = "10.3.20.50";
-
+app.post("/api/startScan", (req, res) => {
+  const { ipAddress } = req.body;
+  if (!ipAddress) {
+    return res.status(400).json({ error: "IP address is required" });
+  }
   const command =
     "/home/kali/.local/share/pipx/venvs/semiautorecon/bin/semiautorecon";
   const args = [ipAddress];
@@ -35,12 +47,23 @@ app.get("/api/startScan", (req, res) => {
       cwd: resultsFolder,
       env: process.env,
     });
-
+    clientSocket.on("userInput", (input) => {
+      console.log("input", input);
+      shell.write(input + "\n");
+    });
     let stdoutData = "";
 
     shell.on("data", (data) => {
       stdoutData += data;
       console.log("Semiautorecon stdout:", data.toString());
+
+      if (
+        data
+          .toString()
+          .includes("SemiAutoRecon wants to execute the following command")
+      ) {
+        clientSocket.emit("confirmationNeeded", data);
+      }
     });
 
     shell.on("exit", (code) => {
@@ -98,19 +121,6 @@ app.post("/api/executeCommand", (req, res) => {
   });
 });
 
-function parseSemiautoreconOutput(output) {
-  const regex =
-    /\[!\]\sSemiAutoRecon wants to execute the following command:\s(.+)\sType "EXECUTE" to execute this command, "SKIP" to skip it/g;
-  const commands = [];
-  let match;
-  console.log("this is the output ", output);
-  while ((match = regex.exec(output)) !== null) {
-    commands.push(match[1]);
-  }
-
-  return commands;
-}
-
 app.get("/api/allData", (req, res) => {
   function readFilesAndDirectoriesRecursively(directory) {
     const items = fs.readdirSync(directory);
@@ -137,6 +147,6 @@ app.get("/api/allData", (req, res) => {
 });
 
 const PORT = process.env.PORT || 3002;
-app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
+http.listen(PORT, () => {
+  console.log(`Server is running on ${PORT}`);
 });

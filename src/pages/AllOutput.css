@@ -3,10 +3,7 @@
 }
 
 .header {
-  margin: 0;
-  padding: 20px;
-  background-color: rgb(56, 176, 0);
-  color: white;
+  display: none; /* Hide the header element */
 }
 
 .outputSection {
@@ -49,4 +46,3 @@
 .portBadge:hover {
   background-color: #113d11; /* Change background color on hover */
 }
-

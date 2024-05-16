@@ -25,21 +25,29 @@ const AllOutput = () => {
       if (ip === ipAddress) {
         const portData = scan[ip][3]?.scans; // Use optional chaining (?.) to safely access scans array
         if (portData && Array.isArray(portData)) {
-          portData.forEach((port) => {
+          const filteredPortInfo = portData.filter((port) => {
             const portNumber = Object.keys(port)[0];
             const portInfo = port[portNumber];
-
-            let filename = null;
-            let content = null;
-
-            if (
+            return (
               portInfo &&
               typeof portInfo === "object" &&
               portInfo[0]?.filename && // Use optional chaining (?.) to safely access filename
               portInfo[0].filename.endsWith(".txt")
-            ) {
-              filename = portInfo[0].filename;
-              content = portInfo[0].content;
+            );
+          });
+          filteredPortInfo.forEach((port) => {
+            const portNumber = Object.keys(port)[0];
+            const portInfo = port[portNumber];
+            let filename = null;
+            let content = null;
+
+            if (portInfo && Array.isArray(portInfo)) {
+              portInfo.forEach((info) => {
+                if (info.filename && info.filename.endsWith(".txt")) {
+                  filename = info.filename;
+                  content = info.content;
+                }
+              });
             }
 
             if (portNumber.startsWith("tcp")) {
@@ -87,14 +95,16 @@ const AllOutput = () => {
                 <div className="portSection">
                   <h4>TCP Ports:</h4>
                   {tcp.map((port, idx) => {
-                    //////////////////////////////////////////////////console.log(port); // Add this line
+                    const portParams = new URLSearchParams({
+                      port: port.port,
+                      filename: port.filename,
+                      content: port.content,
+                    }).toString();
+
                     return (
                       <Link
                         key={idx}
-                        to={{
-                          pathname: `/port/${port.port}`,
-                          state: port, // Pass the entire port object
-                        }}
+                        to={`/port/${port.port}?${portParams}`}
                         className="portBadge"
                       >
                         {port.port}
@@ -102,18 +112,23 @@ const AllOutput = () => {
                     );
                   })}
                 </div>
-                {udp.map((port, idx) => (
-                  <Link
-                    key={idx}
-                    to={{
-                      pathname: `/port/${port.port}`,
-                      state: port, // Pass the entire port object
-                    }}
-                    className="portBadge"
-                  >
-                    {port.port}
-                  </Link>
-                ))}
+                {udp.map((port, idx) => {
+                  const portParams = new URLSearchParams({
+                    port: port.port,
+                    filename: port.filename,
+                    content: port.content,
+                  }).toString();
+
+                  return (
+                    <Link
+                      key={idx}
+                      to={`/port/${port.port}?${portParams}`}
+                      className="portBadge"
+                    >
+                      {port.port}
+                    </Link>
+                  );
+                })}
               </div>
             </div>
           );

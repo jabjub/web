@@ -1,0 +1,37 @@
+/* Filename: Details.css */
+
+.details {
+  margin-left: 260px; /* Align with the margin of the main content */
+  padding: 20px;
+  font-family: Arial, sans-serif;
+}
+
+.details h1 {
+  font-size: 2rem;
+  margin-bottom: 20px;
+}
+
+.details h2 {
+  font-size: 1.5rem;
+  margin-bottom: 10px;
+}
+
+.details p {
+  font-size: 1rem;
+  margin-bottom: 10px;
+}
+
+.details pre {
+  background-color: #f4f4f4;
+  padding: 15px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  overflow-x: auto;
+  white-space: pre-wrap; /* Wrap text */
+  word-wrap: break-word; /* Break long words */
+}
+
+.details .no-details {
+  font-size: 1rem;
+  color: #ff0000;
+}

@@ -2,11 +2,13 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import "./Dashboard.css";
 import io from "socket.io-client";
+
 const Dashboard = () => {
   const [ipAddress, setIpAddress] = useState("");
   const [isValidIp, setIsValidIp] = useState(false);
   const [action, setAction] = useState("");
   const [socket, setSocket] = useState(null);
+
   const handleInputChange = (e) => {
     const value = e.target.value;
     setIpAddress(value);
@@ -75,21 +77,44 @@ const Dashboard = () => {
       alert("Failed to execute command. Please try again.");
     }
   };
+
+  const stripAnsiCodes = (text) => {
+    return text.replace(
+      /[\u001b\u009b][[()#;?]*(?:(?:[a-zA-Z\d]*(?:;[-a-zA-Z\d\/#&.:=?%@~_]+)*)?\u0007|(?:\d{1,4}(?:;\d{0,4})*)?[a-zA-Z\d])/g,
+      ""
+    );
+  };
+
   useEffect(() => {
     const socket = io("http://localhost:3002");
     setSocket(socket);
     socket.on("connect", () => {
-      console.log("socket connected");
+      console.log("Socket connected");
     });
     socket.on("confirmationNeeded", (data) => {
-      console.log("input needed", data);
-      setAction(data);
-      //const userInput = window.confirm("Are you sure" ? "y" : "n");
+      console.log("Confirmation needed:", data);
+      const cleanData = stripAnsiCodes(data);
+      console.log("Cleaned data:", cleanData);
+
+      // Adjusted regex to be more flexible with whitespace
+      const regex =
+        /SemiAutoRecon wants to execute the following command:\s*([\s\S]*?)\s*Type\s*".*?"/;
+      const match = cleanData.match(regex);
+      console.log("Regex match result:", match);
+
+      if (match && match[1]) {
+        console.log("Extracted command:", match[1]);
+        setAction(match[1].trim());
+      } else {
+        console.log("No command extracted");
+      }
     });
   }, []);
+
   const handleAction = (a) => {
     socket.emit("userInput", a);
   };
+
   return (
     <div className="dashboard-container">
       <div className="input-container">
@@ -116,10 +141,24 @@ const Dashboard = () => {
         </form>
       </div>
       {action && (
-        <div>
-          {action}
-          <button onClick={() => handleAction("y")}>accept</button>
-          <button onClick={() => handleAction("n")}>refuse</button>
+        <div className="confirmation-container">
+          <div className="confirmation-message">
+            Command to execute: <code className="command-text">{action}</code>
+          </div>
+          <div className="confirmation-buttons">
+            <button
+              className="confirm-button accept"
+              onClick={() => handleAction("y")}
+            >
+              Accept
+            </button>
+            <button
+              className="confirm-button refuse"
+              onClick={() => handleAction("n")}
+            >
+              Refuse
+            </button>
+          </div>
         </div>
       )}
     </div>

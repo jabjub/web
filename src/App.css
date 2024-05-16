@@ -1,10 +1,11 @@
 /* Filename: App.css */
 
 * {
-	box-sizing: border-box;
-	margin: 0;
-	padding: 0;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
+
 .home,
 .user,
 .dashboard,
@@ -16,8 +17,19 @@
 .vuln1,
 .vuln2,
 .vuln3,
-.support{
-	display: flex;
-	margin-left: 260px;
-	font-size: 1rem;
+.support,
+.details {
+  display: flex;
+  margin-left: 260px;
+  font-size: 1rem;
+  flex-direction: column; /* Ensure content is displayed in a column */
+  padding: 20px; /* Add some padding for better readability */
+}
+
+/* Add styles for other elements inside Details */
+.details h1,
+.details h2,
+.details p,
+.details pre {
+  margin-bottom: 15px;
 }

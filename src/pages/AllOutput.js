@@ -38,38 +38,39 @@ const AllOutput = () => {
           filteredPortInfo.forEach((port) => {
             const portNumber = Object.keys(port)[0];
             const portInfo = port[portNumber];
+
             let filename = null;
             let content = null;
+            let portInfoData = []; // Declare a variable to store PortInfo
 
             if (portInfo && Array.isArray(portInfo)) {
               portInfo.forEach((info) => {
                 if (info.filename && info.filename.endsWith(".txt")) {
                   filename = info.filename;
                   content = info.content;
+                  portInfoData.push(info); // Collect PortInfo data
                 }
               });
             }
 
+            const portInfoString = JSON.stringify(portInfoData); // Convert PortInfo array to JSON string
+            console.log(portInfoString);
             if (portNumber.startsWith("tcp")) {
-              if (filename && content) {
-                openPorts.tcp.push({
-                  port: portNumber,
-                  filename: filename,
-                  content: content,
-                });
-              } else {
-                openPorts.tcp.push({ port: portNumber });
-              }
+              openPorts.tcp.push({
+                port: portNumber,
+                ip: ip,
+                filename,
+                content,
+                portInfo: portInfoString, // Add PortInfo as a JSON string
+              });
             } else if (portNumber.startsWith("udp")) {
-              if (filename && content) {
-                openPorts.udp.push({
-                  port: portNumber,
-                  filename: filename,
-                  content: content,
-                });
-              } else {
-                openPorts.udp.push({ port: portNumber });
-              }
+              openPorts.udp.push({
+                port: portNumber,
+                ip: ip,
+                filename,
+                content,
+                portInfo: portInfoString, // Add PortInfo as a JSON string
+              });
             }
           });
         }
@@ -97,8 +98,10 @@ const AllOutput = () => {
                   {tcp.map((port, idx) => {
                     const portParams = new URLSearchParams({
                       port: port.port,
+                      ip: port.ip,
                       filename: port.filename,
                       content: port.content,
+                      portInfo: port.portInfo, // Add portInfo to URL parameters
                     }).toString();
 
                     return (
@@ -112,23 +115,30 @@ const AllOutput = () => {
                     );
                   })}
                 </div>
-                {udp.map((port, idx) => {
-                  const portParams = new URLSearchParams({
-                    port: port.port,
-                    filename: port.filename,
-                    content: port.content,
-                  }).toString();
+                {udp.length > 0 && (
+                  <div className="portSection">
+                    <h4>UDP Ports:</h4>
+                    {udp.map((port, idx) => {
+                      const portParams = new URLSearchParams({
+                        port: port.port,
+                        ip: port.ip,
+                        filename: port.filename,
+                        content: port.content,
+                        portInfo: port.portInfo, // Add portInfo to URL parameters
+                      }).toString();
 
-                  return (
-                    <Link
-                      key={idx}
-                      to={`/port/${port.port}?${portParams}`}
-                      className="portBadge"
-                    >
-                      {port.port}
-                    </Link>
-                  );
-                })}
+                      return (
+                        <Link
+                          key={idx}
+                          to={`/port/${port.port}?${portParams}`}
+                          className="portBadge"
+                        >
+                          {port.port}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             </div>
           );

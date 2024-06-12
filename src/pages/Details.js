@@ -22,15 +22,15 @@ const Details = () => {
 
   return (
     <div className="details">
-      <h1>IP: {ip}</h1>
+      <h1 style={{ color: "rgba(63, 63, 233, 0.556)" }}>IP: {ip}</h1>
+      <p style={{ fontSize: "24px" }}>PORT: {port}</p>
+
       {port ? (
         <div>
-          <h2>Port: {port}</h2>
-          <h3>Port Info:</h3>
           {portInfo.length > 0 ? (
             <div className="portInfo">
               {portInfo.map((info, index) => (
-                <div key={index} className="portInfoEntry">
+                <div key={index} className="accordion1">
                   {info.filename && (
                     <h4
                       onClick={() => toggleContentVisibility(index)}
